@@ -36,6 +36,29 @@ func New(creationFlags sciter.WindowCreationFlag, rect *sciter.Rect) (*Window, e
 	return w, nil
 }
 
+func NewWithCustomDelegateProc(creationFlags sciter.WindowCreationFlag, rect *sciter.Rect, customDelegateProc *func(hWnd win.HWND, message uint, wParam uintptr, lParam uintptr, pParam uintptr, pHandled *int) int) (*Window, error) {
+	w := new(Window)
+	w.creationFlags = creationFlags
+
+	// Initialize OLE for DnD and printing support
+	win.OleInitialize()
+
+	// create window
+	hwnd := sciter.CreateWindow(
+		creationFlags,
+		rect,
+		syscall.NewCallback(*customDelegateProc),
+		0,
+		sciter.BAD_HWINDOW)
+
+	if hwnd == sciter.BAD_HWINDOW {
+		return nil, fmt.Errorf("Sciter CreateWindow failed [%d]", win.GetLastError())
+	}
+
+	w.Sciter = sciter.Wrap(hwnd)
+	return w, nil
+}
+
 func (s *Window) Show() {
 	// message handling
 	hwnd := win.HWND(unsafe.Pointer(s.GetHwnd()))
